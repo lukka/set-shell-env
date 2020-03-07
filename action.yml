@@ -1,0 +1,36 @@
+# Copyright (c) 2020 Luca Cappa
+# Released under the term specified in file LICENSE.txt
+# SPDX short identifier: MIT
+
+name: 'set-env-shell'
+description: "Exports as workflow variables a subset of the shell environment variables, accessible in any step using 'env.VAR-NAME'"
+author: 'Luca Cappa https://github.com/lukka'
+inputs:
+
+  shell:
+    required: false
+    description: <
+      The command to execute to start the shell.
+  args:
+    required: false
+    description: <
+      Arguments to be provided to the shell to output the environment variables.
+  pathSeparator:
+    required: false
+    description: <
+      The character used to separate entries in the PATH environment variable.
+  filter:
+    required: false
+    description: <
+      A regular expression that excludes environment variables that it does match.
+  includeFilter:
+    description: <
+      Whether the filter is for including or for excluding variables.
+
+runs:
+  using: 'node12'
+  main: './dist/index.js'
+
+branding:
+  icon: 'terminal'  
+  color: 'green'
