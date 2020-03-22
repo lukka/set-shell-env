@@ -2,7 +2,7 @@
 
 # [**set-shell-env** action ](https://github.com/marketplace/actions/run-cmake)
 
-This action exports as GitHub's variables all the shell environment variables. After its execution any environment variable is accessible by using `${{ env.<VARIABLENAME> }}`.
+This action exports as GitHub's variables a subset of the shell environment variables (using a regex to include/exclude the whole set). You can create new ones in the `with:` section as well in the yml file. After its execution any environment variable is accessible by using `${{ env.<VARIABLENAME> }}` or `$VARIABLENAME`.
 
  ## User Manual
  * [Quickstart](#quickstart)
@@ -20,14 +20,22 @@ This action exports as GitHub's variables all the shell environment variables. A
 
 ```yaml
     - uses: lukka/set-shell-env@v0
+      name: export all environment variable and ones defined in the 'with' section as well
+      with:
+        NEW_VAR_NAME: new_var_value
     # with:
     #   shell: 'bash' or 'tcsh' or any command that starts a shell .
-    #   args: '-c env' or any arguments that print out the environment variables as pairs of: NAME=VALUE .
-    #   filter: '.*' is the default, i.e. include all by default.
+    #   args: '-c env' or any arguments that list the environment variables as NAME=VALUE pairs.
+    #   filter: the default include all but the "npm_*" ones.
     #   includeFilter: indicates if the filter includes or exclude variables.
+    #   YOUR_VARIABLE_NAME: provide value for any new variable you name. Note the name will always be converted to be all uppercase.
     #  Here onward any following step can access any environment variable using:
     #  in your yml file:
-    #     ${{ env.NAME }}
+    #     ${{ env.YOUR_VARIABLE_NAME }}
+    - name: print $new_var_name
+      run: |
+        echo $NEW_VAR_NAME
+      shell: bash
 ```
 
 ### <a id='reference'>Action reference: all input/output parameters</a>

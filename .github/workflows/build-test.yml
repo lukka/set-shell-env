@@ -22,4 +22,16 @@ jobs:
         npm install
         npm run test
       name: build and test
-    - uses: lukka/set-shell-env@master
+    - name: set $new_var_name
+      uses: lukka/set-shell-env@master
+      with:
+        NEW_VAR_NAME: new_var_value
+        includeFilter: true
+    - name: print $new_var_name
+      run: |
+        echo "NEW_VAR_NAME=$NEW_VAR_NAME"
+        if [ "$NEW_VAR_NAME" != "new_var_value" ]; then
+          echo "env var 'new_var_name' must be equal to new_var_value"
+          exit -1
+        fi
+      shell: bash

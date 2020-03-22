@@ -34,7 +34,7 @@ module.exports =
 /******/ 	// the startup function
 /******/ 	function startup() {
 /******/ 		// Load entry module and return exports
-/******/ 		return __webpack_require__(685);
+/******/ 		return __webpack_require__(498);
 /******/ 	};
 /******/
 /******/ 	// run startup
@@ -1256,6 +1256,24 @@ exports.getState = getState;
 
 /***/ }),
 
+/***/ 498:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+// Copyright (c) 2020 Luca Cappa
+// Released under the term specified in file LICENSE.txt
+// SPDX short identifier: MIT
+Object.defineProperty(exports, "__esModule", { value: true });
+const setShellEnv = __webpack_require__(685);
+// Main entry point of the action.
+setShellEnv.main().catch((error) => console.log(`"${error}"`));
+
+//# sourceMappingURL=main.js.map
+
+
+/***/ }),
+
 /***/ 614:
 /***/ (function(module) {
 
@@ -1499,13 +1517,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __webpack_require__(470);
 const exec = __webpack_require__(986);
-const os_1 = __webpack_require__(87);
 exports.actionName = 'set-shell-env';
 exports.shellInput = 'shell';
 exports.argsInput = 'args';
-exports.pathSeparatorInput = 'pathSeparator';
 exports.filterInput = 'filter';
-exports.includeFilterInput = 'includeFilter';
+exports.includingFilterInput = 'including-filter';
+const excludedEnvVars = [exports.shellInput, exports.argsInput, exports.filterInput, exports.includingFilterInput, "path"];
 ;
 function parseEnv(data) {
     const map = {};
@@ -1531,19 +1548,14 @@ function dumpEnvironment() {
     core.debug("dumpEnvironment()>>");
 }
 function main() {
-    var _a, _b, _c, _d, _e, _f;
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const shell = (_a = core.getInput(exports.shellInput, { required: false })) !== null && _a !== void 0 ? _a : "bash";
-            const args = (_b = core.getInput(exports.argsInput, { required: false })) !== null && _b !== void 0 ? _b : "-c env";
-            const defaultSeparator = os_1.platform.toString() === "win32" ? ";" : ":";
-            const pathSeparator = (_c = core.getInput(exports.pathSeparatorInput, { required: false })) !== null && _c !== void 0 ? _c : defaultSeparator;
-            const filter = new RegExp((_d = core.getInput(exports.filterInput)) !== null && _d !== void 0 ? _d : ".*");
-            const includeFilter = (_e = core.getInput(exports.includeFilterInput)) !== null && _e !== void 0 ? _e : "true";
-            const isIncludeFilter = includeFilter.toLowerCase() === 'true';
-            if (core.isDebug()) {
-                dumpEnvironment();
-            }
+            const shell = core.getInput(exports.shellInput, { required: false }) || "bash";
+            const args = core.getInput(exports.argsInput, { required: false }) || "-c env";
+            const filter = new RegExp(core.getInput(exports.filterInput) || "^(?!npm_config.*$).*");
+            const isIncludeFilter = (core.getInput(exports.includingFilterInput) || "true").toLowerCase() === 'true';
+            console.log(`shell=${shell}, args=${args}, filter=${filter}, isIncludeFilter=${isIncludeFilter}`);
+            dumpEnvironment();
             let stdout = "";
             let stderr = "";
             const options = {
@@ -1563,7 +1575,7 @@ function main() {
                     }
                 }
             };
-            // Run the shell and get all the environment variables.
+            // Run the shell and get all the environment variables with the provided command.
             const exitCode = yield exec.exec(shell, args.split(" "), options);
             if (exitCode !== 0) {
                 throw new Error(`${stdout}\n\n${stderr}`);
@@ -1572,26 +1584,28 @@ function main() {
             const map = parseEnv(stdout);
             // Set the environment variables that are not excluded.
             for (const key in map) {
-                if (filter.test(key) ? !isIncludeFilter : isIncludeFilter) {
-                    core.info(`Variable '${key}' is excluded by filter='${filter.toString()}'`);
+                let varName = key;
+                if (key.startsWith("INPUT_")) {
+                    // Drop the INPUT_ prefix.
+                    varName = key.replace(/^INPUT_/, '');
                 }
-                // Skip any INPUT_*, in order to avoid to set inputs for other tasks.
-                else if (key.toUpperCase().startsWith("INPUT_")) {
-                    core.info(`Variable '${key}' is excluded because it startes with INPUT_'.`);
-                }
-                else if (key.toUpperCase() === "PATH") {
-                    const path = ((_f = process.env[key]) !== null && _f !== void 0 ? _f : "") + pathSeparator + map[key];
-                    core.exportVariable("PATH", path);
+                // Skip action inputs environment variables, and PATH as well.
+                if (excludedEnvVars.includes(varName.toLowerCase()))
+                    continue;
+                if (filter.test(varName) != isIncludeFilter) {
+                    core.debug(`Variable '${varName}' is excluded by filter='${filter}'`);
                 }
                 else {
-                    core.exportVariable(key, map[key]);
+                    core.exportVariable(varName, map[key]);
+                    core.info(`Variable '${varName}' set to '${map[key]}'`);
                 }
             }
+            dumpEnvironment();
             core.info(`${exports.actionName} action execution succeeded`);
         }
         catch (err) {
-            core.debug('Error: ' + err);
-            core.setFailed(`${exports.actionName} action execution failed`);
+            core.debug('Error: ' + err.toString());
+            core.setFailed(`${exports.actionName} action execution failed: ${err}`);
         }
     });
 }
