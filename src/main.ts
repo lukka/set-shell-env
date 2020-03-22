@@ -5,4 +5,4 @@
 import * as setShellEnv from './set-shell-env'
 
 // Main entry point of the action.
-setShellEnv.main().catch((error) => console.log(error));
+setShellEnv.main().catch((error) => console.log(`"${error}"`));

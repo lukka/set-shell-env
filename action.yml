@@ -14,11 +14,7 @@ inputs:
   args:
     required: false
     description: <
-      Arguments to be provided to the shell to output the environment variables.
-  pathSeparator:
-    required: false
-    description: <
-      The character used to separate entries in the PATH environment variable.
+      Arguments to be provided to the shell to list the environment variables in form "name=value", as the 'env' Un*x command does.
   filter:
     required: false
     description: <

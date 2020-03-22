@@ -5,14 +5,15 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import * as execiface from '@actions/exec/lib/interfaces'
-import { platform } from 'os';
+import { delimiter } from 'path'
 
 export const actionName = 'set-shell-env';
 export const shellInput = 'shell';
 export const argsInput = 'args';
-export const pathSeparatorInput = 'pathSeparator';
 export const filterInput = 'filter';
 export const includeFilterInput = 'includeFilter';
+
+const excludedEnvVars: string[] = [shellInput, argsInput, filterInput, includeFilterInput, "path"];
 
 interface EnvVarMap { [key: string]: string };
 
@@ -44,18 +45,14 @@ function dumpEnvironment(): void {
 
 export async function main(): Promise<void> {
   try {
-    const shell = core.getInput(shellInput, { required: false }) ?? "bash";
-    const args = core.getInput(argsInput, { required: false }) ?? "-c env";
-    const defaultSeparator = platform.toString() === "win32" ? ";" : ":";
-    const pathSeparator = core.getInput(pathSeparatorInput, { required: false }) ?? defaultSeparator;
+    const shell = core.getInput(shellInput, { required: false }) || "bash";
+    const args = core.getInput(argsInput, { required: false }) || "-c env";
+    const filter = new RegExp(core.getInput(filterInput) || "^(?!npm_config.*$).*");
+    const isIncludeFilter: boolean =
+      (core.getInput(includeFilterInput) || "true").toLowerCase() === 'true';
 
-    const filter = new RegExp(core.getInput(filterInput) ?? ".*");
-    const includeFilter = core.getInput(includeFilterInput) ?? "true";
-    const isIncludeFilter: boolean = includeFilter.toLowerCase() === 'true';
-
-    if (core.isDebug()) {
-      dumpEnvironment();
-    }
+    console.log(`shell=${shell}, args=${args}, filter=${filter}, isIncludeFilter=${isIncludeFilter}`);
+    dumpEnvironment();
 
     let stdout = "";
     let stderr = "";
@@ -77,7 +74,7 @@ export async function main(): Promise<void> {
       }
     } as execiface.ExecOptions;
 
-    // Run the shell and get all the environment variables.
+    // Run the shell and get all the environment variables with the provided command.
     const exitCode = await exec.exec(shell, args.split(" "), options);
     if (exitCode !== 0) {
       throw new Error(`${stdout}\n\n${stderr}`);
@@ -88,26 +85,28 @@ export async function main(): Promise<void> {
 
     // Set the environment variables that are not excluded.
     for (const key in map) {
-      if (filter.test(key) ? !isIncludeFilter : isIncludeFilter) {
-        core.info(`Variable '${key}' is excluded by filter='${filter.toString()}'`);
-      }
-      // Skip any INPUT_*, in order to avoid to set inputs for other tasks.
-      else if (key.toUpperCase().startsWith("INPUT_")) {
-        core.info(`Variable '${key}' is excluded because it startes with INPUT_'.`);
-      }
-      else if (key.toUpperCase() === "PATH") {
-        const path = (process.env[key] ?? "") + pathSeparator + map[key];
-        core.exportVariable("PATH", path);
+      // Skip action inputs environment variables, and PATH as well.
+      if (excludedEnvVars.includes(key.toLowerCase()))
+        continue;
+      if (filter.test(key) != isIncludeFilter) {
+        core.info(`Variable '${key}' is excluded by filter='${filter}'`);
+      } else if (key.toUpperCase().startsWith("INPUT_")) {
+        // Drop the INPUT_ prefix and create a new variable with that name.
+        const varName = key.replace(/^INPUT_/, '');
+        const varValue = `${process.env[key]}`;
+        core.exportVariable(varName, varValue);
+        core.info(`Exporting custom variable '${varName}' to '${varValue}'`);
       } else {
         core.exportVariable(key, map[key]);
       }
     }
 
+    dumpEnvironment();
     core.info(`${actionName} action execution succeeded`);
   }
   catch (err) {
-    core.debug('Error: ' + err);
-    core.setFailed(`${actionName} action execution failed`);
+    core.debug('Error: ' + err.toString());
+    core.setFailed(`${actionName} action execution failed: ${err}`);
   }
 }
 
