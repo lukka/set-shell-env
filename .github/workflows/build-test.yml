@@ -22,4 +22,11 @@ jobs:
         npm install
         npm run test
       name: build and test
-    - uses: lukka/set-shell-env@master
+    - name: set $new_var_name
+      uses: lukka/set-shell-env@master
+      with:
+        new_var_name: new_var_name
+    - name: print $new_var_name
+      run: |
+        echo "new_var_name=$new_var_name"
+      shell: bash

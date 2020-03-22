@@ -18,7 +18,7 @@ describe('set-shell-env', () => {
             });
     });
 
-    test(' runs', async () => {
+    test('runs successfully', async () => {
         process.env['INPUT_SHELL'] = 'bash';
         process.env['INPUT_ARGS'] = "-c env";
         process.env['INPUT_FILTER'] = '.*HOME.*';
@@ -29,6 +29,27 @@ describe('set-shell-env', () => {
         };
 
         cp.execSync(`node ${ip}`, options);
+    });
+
+    test('must export INPUT_* variables as env vars', async () => {
+        const exportVariableMock = jest.spyOn(core, "exportVariable");
+
+        process.env.INPUT_FILTER = ".*";
+        process.env.INPUT_SHELL = "bash";
+        process.env.INPUT_ARGS = "-c env";
+        process.env.INPUT_INCLUDEFILTER = 'true';
+        const varName = "CUSTOM_VARIABLE";
+        const varValue = "I_AM_SPECIAL";
+        process.env[`INPUT_${varName}`] = varValue;
+        await setShellEnv.main();
+
+        // Check all INPUT_ nor the filtered out have been exported.
+        let customVarFound = false;
+        for (let call of exportVariableMock.mock.calls) {
+            if (call[0] === varName && call[1] === varValue)
+                customVarFound = true;
+        }
+        expect(customVarFound).toBeTruthy();
     });
 
     test('must export variables according to include filter', async () => {
@@ -59,7 +80,7 @@ describe('set-shell-env', () => {
         await setShellEnv.main();
 
         // Check all INPUT_ nor the filtered out have been exported.
-        for (let call in exportVariableMock.mock.calls) {
+        for (let call of exportVariableMock.mock.calls) {
             expect(call[0] != filter).toBeTruthy();
         }
     });

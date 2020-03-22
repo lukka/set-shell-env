@@ -20,6 +20,9 @@ This action exports as GitHub's variables all the shell environment variables. A
 
 ```yaml
     - uses: lukka/set-shell-env@v0
+      name: export all environment variable and ones defined with 'with' as well
+      with:
+        new_var_name: new_var_value
     # with:
     #   shell: 'bash' or 'tcsh' or any command that starts a shell .
     #   args: '-c env' or any arguments that print out the environment variables as pairs of: NAME=VALUE .
@@ -28,6 +31,9 @@ This action exports as GitHub's variables all the shell environment variables. A
     #  Here onward any following step can access any environment variable using:
     #  in your yml file:
     #     ${{ env.NAME }}
+    - run: |
+      echo $new_var_name
+      shell: bash
 ```
 
 ### <a id='reference'>Action reference: all input/output parameters</a>

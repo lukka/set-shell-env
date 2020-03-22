@@ -53,9 +53,7 @@ export async function main(): Promise<void> {
     const includeFilter = core.getInput(includeFilterInput) ?? "true";
     const isIncludeFilter: boolean = includeFilter.toLowerCase() === 'true';
 
-    if (core.isDebug()) {
-      dumpEnvironment();
-    }
+    dumpEnvironment();
 
     let stdout = "";
     let stderr = "";
@@ -90,12 +88,13 @@ export async function main(): Promise<void> {
     for (const key in map) {
       if (filter.test(key) ? !isIncludeFilter : isIncludeFilter) {
         core.info(`Variable '${key}' is excluded by filter='${filter.toString()}'`);
-      }
-      // Skip any INPUT_*, in order to avoid to set inputs for other tasks.
-      else if (key.toUpperCase().startsWith("INPUT_")) {
-        core.info(`Variable '${key}' is excluded because it startes with INPUT_'.`);
-      }
-      else if (key.toUpperCase() === "PATH") {
+      } else if (key.toUpperCase().startsWith("INPUT_")) {
+        // Skip any INPUT_*, in order to avoid to set inputs for other tasks.
+        const varName = key.replace(/^INPUT_/, '');
+        const varValue = `${process.env[key]}`;
+        core.exportVariable(varName, varValue);
+        core.info(`Setting '${varName}' to "${varValue}"`);
+      } else if (key.toUpperCase() === "PATH") {
         const path = (process.env[key] ?? "") + pathSeparator + map[key];
         core.exportVariable("PATH", path);
       } else {
@@ -103,6 +102,7 @@ export async function main(): Promise<void> {
       }
     }
 
+    dumpEnvironment();
     core.info(`${actionName} action execution succeeded`);
   }
   catch (err) {

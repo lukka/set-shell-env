@@ -1541,9 +1541,7 @@ function main() {
             const filter = new RegExp((_d = core.getInput(exports.filterInput)) !== null && _d !== void 0 ? _d : ".*");
             const includeFilter = (_e = core.getInput(exports.includeFilterInput)) !== null && _e !== void 0 ? _e : "true";
             const isIncludeFilter = includeFilter.toLowerCase() === 'true';
-            if (core.isDebug()) {
-                dumpEnvironment();
-            }
+            dumpEnvironment();
             let stdout = "";
             let stderr = "";
             const options = {
@@ -1575,9 +1573,12 @@ function main() {
                 if (filter.test(key) ? !isIncludeFilter : isIncludeFilter) {
                     core.info(`Variable '${key}' is excluded by filter='${filter.toString()}'`);
                 }
-                // Skip any INPUT_*, in order to avoid to set inputs for other tasks.
                 else if (key.toUpperCase().startsWith("INPUT_")) {
-                    core.info(`Variable '${key}' is excluded because it startes with INPUT_'.`);
+                    // Skip any INPUT_*, in order to avoid to set inputs for other tasks.
+                    const varName = key.replace(/^INPUT_/, '');
+                    const varValue = `${process.env[key]}`;
+                    core.exportVariable(varName, varValue);
+                    core.info(`Setting '${varName}' to "${varValue}"`);
                 }
                 else if (key.toUpperCase() === "PATH") {
                     const path = ((_f = process.env[key]) !== null && _f !== void 0 ? _f : "") + pathSeparator + map[key];
@@ -1587,6 +1588,7 @@ function main() {
                     core.exportVariable(key, map[key]);
                 }
             }
+            dumpEnvironment();
             core.info(`${exports.actionName} action execution succeeded`);
         }
         catch (err) {
