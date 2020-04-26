@@ -1521,8 +1521,7 @@ exports.actionName = 'set-shell-env';
 exports.shellInput = 'shell';
 exports.argsInput = 'args';
 exports.filterInput = 'filter';
-exports.includingFilterInput = 'including-filter';
-const excludedEnvVars = [exports.shellInput, exports.argsInput, exports.filterInput, exports.includingFilterInput, "path"];
+const excludedEnvVars = [exports.shellInput, exports.argsInput, exports.filterInput, "path"];
 ;
 function parseEnv(data) {
     const map = {};
@@ -1547,14 +1546,18 @@ function dumpEnvironment() {
     }
     core.debug("dumpEnvironment()>>");
 }
+// Skip action inputs environment variables, and PATH as well.
+function isExcluded(varName) {
+    return (excludedEnvVars.includes(varName.toLowerCase()));
+}
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const shell = core.getInput(exports.shellInput, { required: false }) || "bash";
             const args = core.getInput(exports.argsInput, { required: false }) || "-c env";
-            const filter = new RegExp(core.getInput(exports.filterInput) || "^(?!npm_config.*$).*");
-            const isIncludeFilter = (core.getInput(exports.includingFilterInput) || "true").toLowerCase() === 'true';
-            console.log(`shell=${shell}, args=${args}, filter=${filter}, isIncludeFilter=${isIncludeFilter}`);
+            const filterExpression = core.getInput(exports.filterInput);
+            const filter = filterExpression ? new RegExp(filterExpression) : undefined;
+            console.log(`shell=${shell}, args=${args}, filter=${filter}`);
             dumpEnvironment();
             let stdout = "";
             let stderr = "";
@@ -1582,22 +1585,24 @@ function main() {
             }
             // Parse the output.
             const map = parseEnv(stdout);
-            // Set the environment variables that are not excluded.
+            // Set the environment variables that are included.
             for (const key in map) {
                 let varName = key;
                 if (key.startsWith("INPUT_")) {
                     // Drop the INPUT_ prefix.
                     varName = key.replace(/^INPUT_/, '');
-                }
-                // Skip action inputs environment variables, and PATH as well.
-                if (excludedEnvVars.includes(varName.toLowerCase()))
-                    continue;
-                if (filter.test(varName) != isIncludeFilter) {
-                    core.debug(`Variable '${varName}' is excluded by filter='${filter}'`);
+                    if (!isExcluded(varName)) {
+                        core.exportVariable(varName, map[key]);
+                        core.info(`Variable '${varName}' set to '${map[key]}'`);
+                    }
                 }
                 else {
-                    core.exportVariable(varName, map[key]);
-                    core.info(`Variable '${varName}' set to '${map[key]}'`);
+                    if (!isExcluded(varName)) {
+                        if (filter === null || filter === void 0 ? void 0 : filter.test(varName)) {
+                            core.exportVariable(varName, map[key]);
+                            core.info(`Variable '${varName}' set to '${map[key]}'`);
+                        }
+                    }
                 }
             }
             dumpEnvironment();

@@ -58,28 +58,22 @@ describe('set-shell-env', () => {
         process.env.INPUT_FILTER = "__MYVARIABLE__";
         process.env.INPUT_SHELL = "bash";
         process.env.INPUT_ARGS = "-c env";
-        process.env['INPUT_INCLUDING-FILTER'] = 'true';
         await setShellEnv.main();
 
         expect(exportVariableMock).toHaveBeenCalledTimes(1);
         expect(exportVariableMock).toHaveBeenCalledWith('__MYVARIABLE__', 'myvariable');
     });
 
-    test('must export variables according to exclude filter', async () => {
+    test('must export no variables according to a not defined include filter', async () => {
         const exportVariableMock = jest.spyOn(core, "exportVariable");
 
-        const filter = "__MYVARIABLE__";
-        const envVarCount = Object.keys(process.env).length;
+        process.env.__NOTMYVARIABLE__ = "notmyvariable";
         process.env.__MYVARIABLE__ = "myvariable";
-        process.env.INPUT_FILTER = filter;
         process.env.INPUT_SHELL = "bash";
         process.env.INPUT_ARGS = "-c env";
-        process.env['INPUT_INCLUDING-FILTER'] = 'false';
         await setShellEnv.main();
 
-        // Check all INPUT_ nor the filtered out have been exported.
-        for (let call of exportVariableMock.mock.calls) {
-            expect(call[0] != filter).toBeTruthy();
-        }
+        expect(exportVariableMock).toHaveBeenCalledTimes(0);
     });
+
 });

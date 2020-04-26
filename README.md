@@ -2,7 +2,7 @@
 
 # [**set-shell-env** action ](https://github.com/marketplace/actions/run-cmake)
 
-This action exports as GitHub's variables a subset of the shell environment variables (using a regex to include/exclude the whole set). You can create new ones in the `with:` section as well in the yml file. After its execution any environment variable is accessible by using `${{ env.<VARIABLENAME> }}` or `$VARIABLENAME`.
+This action exports as GitHub's variables a subset of the shell environment variables (using a regex for subset selection). You can create new ones in the `with:` section as well in the yml file. After its execution, any exported variable is accessible by using `${{ env.<VARIABLENAME> }}` or using specific syntax according to the shell (e.g. `$VARIABLENAME` for `bash`).
 
  ## User Manual
  * [Quickstart](#quickstart)
@@ -19,20 +19,21 @@ This action exports as GitHub's variables a subset of the shell environment vari
 ## <a id='quickstart'>Quickstart</a>
 
 ```yaml
-    - uses: lukka/set-shell-env@v0
-      name: export all environment variable and ones defined in the 'with' section as well
+      # Export NEW_VAR_NAME variable for subsequent steps, and export all environment variables matching the optional regexp.
+    - uses: lukka/set-shell-env@v1
+      name: 
       with:
         NEW_VAR_NAME: new_var_value
+        filter: <regexp>
     # with:
-    #   shell: 'bash' or 'tcsh' or any command that starts a shell .
+    #   shell: 'bash' or 'tcsh' or any command that starts a shell.
     #   args: '-c env' or any arguments that list the environment variables as NAME=VALUE pairs.
-    #   filter: the default include all but the "npm_*" ones.
-    #   includeFilter: indicates if the filter includes or exclude variables.
+    #   filter: an optional reg exp to export matching variables out of the desired shell.
     #   YOUR_VARIABLE_NAME: provide value for any new variable you name. Note the name will always be converted to be all uppercase.
-    #  Here onward any following step can access any environment variable using:
+    #  Here onward any following step can access the environment variable using:
     #  in your yml file:
     #     ${{ env.YOUR_VARIABLE_NAME }}
-    - name: print $new_var_name
+    - name: print $NEW_VAR_NAME
       run: |
         echo $NEW_VAR_NAME
       shell: bash

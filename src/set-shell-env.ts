@@ -11,9 +11,8 @@ export const actionName = 'set-shell-env';
 export const shellInput = 'shell';
 export const argsInput = 'args';
 export const filterInput = 'filter';
-export const includingFilterInput = 'including-filter';
 
-const excludedEnvVars: string[] = [shellInput, argsInput, filterInput, includingFilterInput, "path"];
+const excludedEnvVars: string[] = [shellInput, argsInput, filterInput, "path"];
 
 interface EnvVarMap { [key: string]: string };
 
@@ -43,15 +42,19 @@ function dumpEnvironment(): void {
   core.debug("dumpEnvironment()>>");
 }
 
+
+// Skip action inputs environment variables, and PATH as well.
+function isExcluded(varName: string): boolean {
+  return (excludedEnvVars.includes(varName.toLowerCase()))
+}
 export async function main(): Promise<void> {
   try {
     const shell = core.getInput(shellInput, { required: false }) || "bash";
     const args = core.getInput(argsInput, { required: false }) || "-c env";
-    const filter = new RegExp(core.getInput(filterInput) || "^(?!npm_config.*$).*");
-    const isIncludeFilter: boolean =
-      (core.getInput(includingFilterInput) || "true").toLowerCase() === 'true';
+    const filterExpression = core.getInput(filterInput);
+    const filter: RegExp | undefined = filterExpression ? new RegExp(filterExpression) : undefined;
 
-    console.log(`shell=${shell}, args=${args}, filter=${filter}, isIncludeFilter=${isIncludeFilter}`);
+    console.log(`shell=${shell}, args=${args}, filter=${filter}`);
     dumpEnvironment();
 
     let stdout = "";
@@ -83,22 +86,23 @@ export async function main(): Promise<void> {
     // Parse the output.
     const map = parseEnv(stdout);
 
-    // Set the environment variables that are not excluded.
+    // Set the environment variables that are included.
     for (const key in map) {
       let varName = key;
       if (key.startsWith("INPUT_")) {
         // Drop the INPUT_ prefix.
         varName = key.replace(/^INPUT_/, '');
-      }
-
-      // Skip action inputs environment variables, and PATH as well.
-      if (excludedEnvVars.includes(varName.toLowerCase()))
-        continue;
-      if (filter.test(varName) != isIncludeFilter) {
-        core.debug(`Variable '${varName}' is excluded by filter='${filter}'`);
+        if (!isExcluded(varName)) {
+          core.exportVariable(varName, map[key]);
+          core.info(`Variable '${varName}' set to '${map[key]}'`);
+        }
       } else {
-        core.exportVariable(varName, map[key]);
-        core.info(`Variable '${varName}' set to '${map[key]}'`);
+        if (!isExcluded(varName)) {
+          if (filter?.test(varName)) {
+            core.exportVariable(varName, map[key]);
+            core.info(`Variable '${varName}' set to '${map[key]}'`);
+          }
+        }
       }
     }
 

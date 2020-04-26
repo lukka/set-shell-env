@@ -18,10 +18,7 @@ inputs:
   filter:
     required: false
     description: <
-      A regular expression that excludes environment variables that it does match.
-  includeFilter:
-    description: <
-      Whether the filter is for including or for excluding variables.
+      A regular expression that selects which environment variables (defined in the specified shell) to be set in the workflow.
 
 runs:
   using: 'node12'
