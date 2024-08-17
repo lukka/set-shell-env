@@ -21,7 +21,7 @@ inputs:
       A regular expression that selects which environment variables (defined in the specified shell) to be set in the workflow.
 
 runs:
-  using: 'node16'
+  using: 'node20'
   main: './dist/index.js'
 
 branding:
