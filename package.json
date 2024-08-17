@@ -35,12 +35,12 @@
     "jest-circus": "^24.9.0",
     "lodash.template": ">=4.5.0",
     "acorn": ">=5.7.4",
-    "minimist": ">=1.2.2",
+    "minimist": ">=1.2.6",
     "@types/jest": "^24.0.25",
     "jest-cli": "^24.9.0"
   },
   "dependencies": {
-    "@actions/core": "^1.2.6",
+    "@actions/core": "^1.9.1",
     "@actions/exec": "^1.0.3",
     "@actions/github": "^2.1.1",
     "@actions/io": "^1.0.2"
